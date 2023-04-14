@@ -595,6 +595,33 @@ public class ChatServer extends WebSocketServer {
                 break;
             }
 
+            case Command.SEND_DELETE_CONVERSATION: {
+                try {
+                    JsonObject deleteConversationObject = new JsonObject();
+                    DeleteConversationEvent deleteMessageEvent = this.gson.fromJson(message, DeleteConversationEvent.class);
+
+                    List<String> messageIds = messageService.getMessageIdsInGroup(deleteMessageEvent.getGroupId());
+
+                    if(messageIds.size() > 0 && messageIds != null) {
+                        messageService.deleteMessage(messageIds, Integer.toString(deleteMessageEvent.getUserId()));
+
+                        deleteConversationObject.addProperty("event","onDeleteConversation");
+                        deleteConversationObject.addProperty("result",true);
+
+                        for (WebSocket client : clients.keySet()) {
+                            if (client.equals(conn)) {
+                                client.send(deleteConversationObject.toString());
+                            }
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
         }
     }
 

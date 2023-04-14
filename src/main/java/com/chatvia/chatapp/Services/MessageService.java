@@ -358,4 +358,27 @@ public class MessageService {
         }
     }
 
+    public void deleteMessage(List<String> messageIds, String userId)  throws SQLException {
+        Message message = null;
+        String sql = "INSERT IGNORE INTO deleted_messages(message_id, user_id) VALUES (?, ?)";
+
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(sql);
+            for (int i = 0; i < messageIds.size(); i++) {
+                statement.setString(1, messageIds.get(i));
+                statement.setString(2, userId);
+                statement.addBatch();
+            }
+
+            statement.executeBatch();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+    }
+
 }

@@ -18,5 +18,6 @@ public class Command {
     public static final String SEND_SEND_FILE = "sendFile";
     public static final String SEND_FORWARD_MESSAGE = "forwardMessage";
     public static final String SEND_DELETE_MESSAGE = "deleteMessage";
+    public static final String SEND_DELETE_CONVERSATION = "deleteConversation";
 }
 
