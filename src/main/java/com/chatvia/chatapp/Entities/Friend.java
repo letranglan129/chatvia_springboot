@@ -29,4 +29,5 @@ public class Friend {
     public void setFriendId(Integer friendId) {
         this.friendId = friendId;
     }
+
 }

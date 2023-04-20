@@ -19,5 +19,18 @@ public class Command {
     public static final String SEND_FORWARD_MESSAGE = "forwardMessage";
     public static final String SEND_DELETE_MESSAGE = "deleteMessage";
     public static final String SEND_DELETE_CONVERSATION = "deleteConversation";
+    public static final String SEND_OUT_GROUP = "outGroup";
+    public static final String SEND_ADD_MEMBER_TO_GROUP = "addMemberToGroup";
+    public static final String SEND_DELETE_GROUP = "deleteGroup";
+    public static final String SEND_UNFRIEND = "unfriend";
+    public static final String SEND_ADD_FRIEND = "addFriend";
+    public static final String SEND_GET_NOTIFICATIONS = "getNotifications";
+    public static final String SEND_GET_FRIENDS = "getFriends";
+    public static final String SEND_ACCEPT_FRIEND = "acceptFriend";
+    public static final String SEND_READ_NOTIFY = "readNotify";
+    public static final String SEND_CANCEL_REQUEST_ADD_FRIEND = "cancelRequestAddFriend";
+    public static final String SEND_BLOCK_USER = "blockUser";
+    public static final String SEND_UNBLOCK_USER = "unlockUser";
+    public static final String SEND_SET_OWNER_GROUP = "setOwnerGroup";
 }
 

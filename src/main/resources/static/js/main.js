@@ -70,14 +70,19 @@ async function showAccountModal(id) {
         success: function (data) {
             let response = JSON.parse(data);
 
+            console.log(data)
+            console.log(response)
             document.querySelector('#modal-account .avatar').innerHTML = response.avatar
                 ? `<img src='${response.avatar}' alt='' >`
                 : `<span class='avatar-label bg-soft-success text-success fs-3 '>${compactName(
                     response.fullname,
                 )}</span>`;
-            document.querySelector('#modal-account .name').innerHTML = response.fullname;
-            document.querySelector('#modal-account .email .email-content').innerHTML = response.email;
-            document.querySelector('#modal-account .phone .phone-content').innerHTML = response.phone;
+            if (document.querySelector('#modal-account .name'))
+                document.querySelector('#modal-account .name').innerHTML = response.fullname;
+            if (document.querySelector('#modal-account .email .email-content'))
+                document.querySelector('#modal-account .email .email-content').innerHTML = response.email;
+            if (document.querySelector('#modal-account .phone .phone-content'))
+                document.querySelector('#modal-account .phone .phone-content').innerHTML = response.phone;
             var myModal = new bootstrap.Modal(document.getElementById('modal-account'), {
                 keyboard: false,
             });
@@ -95,7 +100,6 @@ function cancelRequestAddFriend(friendId) {
         }),
     );
 
-    document.querySelector('#search-friends-button').click();
 }
 
 function blockUser(friendId) {
@@ -106,6 +110,7 @@ function blockUser(friendId) {
             friendId,
         }),
     );
+
 }
 
 function unlockUser(friendId) {
@@ -186,16 +191,15 @@ function sendAddFriend(id) {
             senderName: USER?.fullname,
         }),
     );
-    document.querySelector('#search-friends-button').click();
 }
 
-function accecptFriend(senderId, receiverId, notifyId) {
+function acceptFriend(senderId, receiverId, notifyId) {
     conn.send(
         JSON.stringify({
             senderId,
             receiverId,
             notifyId,
-            command: 'accecptFriend',
+            command: 'acceptFriend',
         }),
     );
 }
@@ -204,6 +208,7 @@ function startChatPrivate(senderId, receiverId) {
     if (!senderId || !receiverId) return;
 
     document.querySelector('.main').classList.add('main-visible');
+    document.querySelector('.main .chat').classList.remove('d-none');
     document.querySelector('.user-chat-main-header').classList.remove(`user-card-${activeChat?.receiver?.id}`);
     document.querySelector('.user-chat-main-header').classList.remove(`online`);
     document.querySelector('.user-chat-main-header').classList.add(`user-card-${receiverId}`);
@@ -253,6 +258,7 @@ function startChatMulti(groupId) {
     document.querySelector('.user-chat-main-header').classList.remove(`user-card-${activeChat?.receiver?.id}`);
     document.querySelector('.user-chat-main-header').classList.remove(`online`);
     document.querySelector('.main').classList.add('main-visible');
+    document.querySelector('.main .chat').classList.remove('d-none');
     conn.send(
         JSON.stringify({
             command: 'startChatMulti',
@@ -361,7 +367,7 @@ function renderFriendList(el, list) {
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <!-- Avatar -->
-                                <div class="avatar me-4" onclick="showAccountModal(${friend?.id})" >
+                                <div class="avatar avatar-online me-4" onclick="showAccountModal(${friend?.id})" >
                                     ${
                         friend?.avatar
                             ? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
@@ -377,9 +383,6 @@ function renderFriendList(el, list) {
                                     <div class="d-flex align-items-center mb-1">
                                         <h5 class="text-truncate mb-0 me-auto">${friend.fullname}
                                         </h5>
-                                    </div>
-                                    <div class="text-online">
-                                        <div class="text-truncate me-auto">Trực tuyến</div>
                                     </div>
                                 </div>
                                 <!-- Content -->
@@ -569,7 +572,7 @@ function renderFriendListCheckbox(el, list, name = 'user-checkbox', groupName = 
                             : friend?.friend_id) || friend?.id
                     }">
                                 <!-- Avatar -->
-                                <div class="avatar me-4">
+                                <div class="avatar avatar-online me-4">
                                     ${
                         friend?.avatar
                             ? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
@@ -941,7 +944,7 @@ function renderMessageList(el, list) {
         .join('');
 }
 
-function renderMenuDropdownConversation(el, type = 'dou', isOwner) {
+function renderMenuDropdownConversation(el, type = 'dou', isOwner, blocked) {
     switch (type) {
         case 'dou':
             el.innerHTML = `
@@ -953,11 +956,16 @@ function renderMenuDropdownConversation(el, type = 'dou', isOwner) {
 				<li>
 					<div class="dropdown-divider"></div>
 				</li>
-				<li>
-					<a class="dropdown-item d-flex align-items-center justify-content-between" id="chatDetailBlockBtn">Chặn
-						<i class="ri-forbid-line"></i>
-					</a>
-				</li>`;
+				${blocked?.userId == USER?.id ? `<li>
+                                        <a class="dropdown-item d-flex align-items-center justify-content-between" id="chatDetailUnblockBtn">Bỏ chặn
+                                            <i class="ri-forbid-line"></i>
+                                        </a>
+                                    </li>` : `    
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center justify-content-between" id="chatDetailBlockBtn">Chặn
+                                            <i class="ri-forbid-line"></i>
+                                        </a>
+                                    </li>`}`;
             break;
         case 'multi':
             el.innerHTML = `
@@ -1121,16 +1129,7 @@ function renderChatInfo(info, type, files) {
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
                                                 <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Download<i class="ri-download-line"></i></a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Share<i class="ri-share-line"></i></a>
-                                                </li>
-                                                <li>
-                                                    <div class="dropdown-divider"></div>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Delete<i class="ri-delete-bin-line"></i></a>
+                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${file?.href}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1221,7 +1220,7 @@ function renderChatInfo(info, type, files) {
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <!-- Avatar -->
-                                <div class="avatar me-4" onclick="showAccountModal(${friend?.id})" >
+                                <div class="avatar avatar-online me-4" onclick="showAccountModal(${friend?.id})" >
                                     ${
                                 friend?.avatar
                                     ? `<img src="${friend?.avatar}" alt="" id="settingAvatarPreview">`
@@ -1381,17 +1380,8 @@ function renderChatInfo(info, type, files) {
                                                 <i class="ri-more-fill"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-right">
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Download<i class="ri-download-line"></i></a>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Share<i class="ri-share-line"></i></a>
-                                                </li>
-                                                <li>
-                                                    <div class="dropdown-divider"></div>
-                                                </li>
-                                                <li>
-                                                    <a class="dropdown-item d-flex align-items-center justify-content-between" href="#">Delete<i class="ri-delete-bin-line"></i></a>
+                                                 <li>
+                                                    <a target="_blank" class="dropdown-item d-flex align-items-center justify-content-between"  download="filename" href="${file?.href}">Tải xuống<i class="ri-download-line"></i></a>
                                                 </li>
                                             </ul>
                                         </div>
@@ -1436,10 +1426,10 @@ function renderNotification(el, list) {
                     btn = `<div class='card-footer'>
 									<div class='row gx-4'>
 										<div class='col'>
-											<a href='#' class='btn btn-secondary btn-sm w-100'>Hủy</a>
+											<a href='#' onClick="cancelRequestAddFriend(${notify['from_id']})" class='btn btn-secondary btn-sm w-100'>Hủy</a>
 										</div>
 										<div class='col'>
-											<a onClick='accecptFriend(${notify['from_id']}, ${notify['user_id']}, ${notify['id']})' class='btn btn-primary btn-sm w-100'>Chấp nhận</a>
+											<a onClick='acceptFriend(${notify['from_id']}, ${notify['user_id']}, ${notify['id']})' class='btn btn-primary btn-sm w-100'>Chấp nhận</a>
 										</div>
 									</div>
 								</div>`;
@@ -1601,7 +1591,7 @@ window.onunload = function () {
 };
 
 conn.onmessage = function (e) {
-    const { event, ...data } = JSON.parse(e.data);
+    const {event, ...data} = JSON.parse(e.data);
     console.log(event, data);
     switch (event) {
         case 'onError': {
@@ -1619,6 +1609,8 @@ conn.onmessage = function (e) {
                     userId: USER?.id || -1,
                 }),
             );
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1628,6 +1620,11 @@ conn.onmessage = function (e) {
                     command: 'getFriends',
                 }),
             );
+            if (activeChat?.type == 'dou' && activeChat?.groupId == data?.groupId) {
+                startChatPrivate(activeChat?.sender?.id, activeChat?.receiver?.id);
+            }
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1675,6 +1672,8 @@ conn.onmessage = function (e) {
                     }),
                 );
             }
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1683,6 +1682,8 @@ conn.onmessage = function (e) {
                 text: data.msg,
                 type: data.status,
             });
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1692,6 +1693,8 @@ conn.onmessage = function (e) {
                     command: 'getFriends',
                 }),
             );
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1712,6 +1715,8 @@ conn.onmessage = function (e) {
                     command: 'getFriends',
                 }),
             );
+
+            document.querySelector('#search-friends-button').click();
             break;
         }
 
@@ -1789,16 +1794,23 @@ conn.onmessage = function (e) {
             }
             getConversation();
 
-            renderMenuDropdownConversation(menuDropdownConversation, activeChat?.type, false);
+            renderMenuDropdownConversation(menuDropdownConversation, activeChat?.type, false, activeChat?.blocked);
 
             document.querySelector('#chatDetailDeleteBtn').onclick = function () {
                 deleteConversation(data.groupId, USER?.id || '-1');
                 getConversation();
             };
+            if (document.querySelector('#chatDetailBlockBtn'))
+                document.querySelector('#chatDetailBlockBtn').onclick = function () {
+                    blockUser(data?.receiver?.id || -1);
+                    getConversation();
+                };
 
-            document.querySelector('#chatDetailBlockBtn').onclick = function () {
-                getConversation();
-            };
+            if (document.querySelector('#chatDetailUnblockBtn'))
+                document.querySelector('#chatDetailUnblockBtn').onclick = function () {
+                    unlockUser(data?.receiver?.id || -1);
+                    getConversation();
+                };
 
             chatFooter.querySelector('.container-fluid').classList.remove('d-none');
             chatFooter.querySelector('.text-blocked')?.remove();
@@ -1857,7 +1869,7 @@ conn.onmessage = function (e) {
         case 'onGetOnline': {
             data.friends.forEach(friend => {
                 document.querySelectorAll(`.user-card-${friend?.id}`).forEach(x => {
-                    if (friend.connectid !== '-1' && friend.connectid !== null) {
+                    if (friend?.isOnline) {
                         x.classList.add('online');
                     } else {
                         x.classList.remove('online');
@@ -1935,6 +1947,7 @@ conn.onmessage = function (e) {
                 menuDropdownConversation,
                 activeChat?.type,
                 data.groupInfo.owner == USER?.id,
+                activeChat?.blocked
             );
 
             document.querySelector('#chatDetailDeleteBtn').onclick = function () {
@@ -2001,6 +2014,8 @@ conn.onmessage = function (e) {
                     type: 'error',
                 });
             }
+
+            getConversation();
             break;
         }
 
@@ -2018,12 +2033,16 @@ conn.onmessage = function (e) {
                 }
             }
 
+            if(data.type == "all") {
+                document.querySelector('.main .chat').classList.add('d-none');
+            }
+
             break;
         }
 
         case 'onDeleteConversation': {
             if (data.result > 0) {
-                $('.main').removeClass('main-visible');
+                document.querySelector('.main .chat').classList.add('d-none');
             }
             break;
         }
@@ -2051,7 +2070,7 @@ conn.onmessage = function (e) {
             }
 
             if (data.userId == USER?.id && activeChat?.groupInfo?.id == data?.groupId) {
-                document.querySelector('.main.main-visible').classList.remove('main-visible');
+                document.querySelector('.main .chat').classList.add('d-none');
             }
             break;
         }
@@ -2069,7 +2088,8 @@ conn.onmessage = function (e) {
         case 'onDeleteGroup': {
             getConversation();
             if (activeChat?.groupInfo?.id == data?.groupId) {
-                document.querySelector('.main.main-visible').classList.remove('main-visible');
+                document.querySelector('.main .chat').classList.add('d-none');
+                activeChat = null;
             }
             break;
         }
@@ -2175,14 +2195,16 @@ createGroupForm.onsubmit = function (e) {
         }
     });
 
-    if (data['groupMember[]']?.length < 2) {
-        return;
+    if (data['groupMember[]']?.length < 2 || !data['groupMember[]']) {
+        showToast({
+            text: "Vui lòng chọn người cần thêm vào nhóm",
+            type: "error"
+        })
+        return
     }
 
-    console.log({ ...data, command: 'createGroup', senderId: USER?.id || -1, fullname: USER?.fullname || '' });
-
     if (e.target.elements['avatar-group-input'].files.length > 0) {
-        handleFileSelect({ target: e.target.elements['avatar-group-input'] }, file => {
+        handleFileSelect({target: e.target.elements['avatar-group-input']}, file => {
             console.log(file);
             conn.send(
                 JSON.stringify({
@@ -2276,9 +2298,18 @@ searchForm.onsubmit = function (e) {
 
                             switch (friend.status) {
                                 case 'pending':
-                                    return `<li>
+                                    if (friend?.friend_id == friend?.id)
+                                        return `<li>
 																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="cancelRequestAddFriend(${friend.id})">Hủy yêu cầu kết bạn<i class="ri-edit-line"></i></a>
 															</li>`;
+                                    if (friend.user_id == friend?.id)
+                                        return `<li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="acceptFriend(${friend.user_id}, ${friend.friend_id})">Chấp nhận kết bạn<i class="ri-edit-line"></i></a>
+															</li><li>
+																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="cancelRequestAddFriend(${friend.id})">Từ chối kết bạn<i class="ri-edit-line"></i></a>
+															</li>`;
+
+                                    break;
                                 case 'accepted':
                                     return `<li>
 																<a class="dropdown-item d-flex align-items-center justify-content-between" onClick="unfriend(${USER?.id || -1} ,${
@@ -2385,6 +2416,15 @@ document.querySelector('#forward-message-modal').addEventListener('show.bs.modal
             const data = new FormData(forwardMemberForm);
             const button = e.relatedTarget;
             const id = button.dataset.id;
+
+            if(data.getAll('member[]').length == 0 && data.getAll('groupMember[]').length ==0) {
+                showToast({
+                    text: "Vui lòng chọn người nhận",
+                    type: "error"
+                })
+                return
+            }
+
             conn.send(
                 JSON.stringify({
                     command: 'forwardMessage',
@@ -2398,6 +2438,30 @@ document.querySelector('#forward-message-modal').addEventListener('show.bs.modal
         },
         {
             once: true,
+        },
+    );
+
+    document.querySelector('#search-forward-user').addEventListener(
+        'input',
+        function (e) {
+            renderFriendListCheckbox(
+                document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
+                Object.keys(friendList).map(title => {
+                    return {
+                        [title]: friendList[title].filter(x => x.fullname.toUpperCase().includes(e.target.value.toUpperCase()))
+                    }
+                })[0],
+                'forward-user-checkbox',
+                'member',
+            );
+
+            renderGroupListCheckbox(
+                document.querySelector('#forward-message-modal').querySelector('form[name="forwardMemberForm"]'),
+                groupConversation.filter(g => g.groupName.toUpperCase().includes(e.target.value.toUpperCase())),
+                'forward-group-checkbox',
+                'groupMember',
+                '+=',
+            );
         },
     );
 });
@@ -2440,6 +2504,15 @@ document.querySelector('#add-member-modal').addEventListener('show.bs.modal', fu
 
     document.querySelector('#submitAddMemberFormBtn').addEventListener('click', function () {
         const data = new FormData(addMemberForm);
+
+            if(data.getAll('add-member[]').length == 0) {
+                showToast({
+                    text: "Vui lòng chọn người cần thêm vào nhóm",
+                    type: "error"
+                })
+                return
+            }
+
         conn.send(
             JSON.stringify({
                 command: 'addMemberToGroup',
@@ -2447,7 +2520,32 @@ document.querySelector('#add-member-modal').addEventListener('show.bs.modal', fu
                 groupId: activeChat?.groupInfo?.id || 0,
             }),
         );
+    },
+    {
+        once: true,
     });
+
+    document.querySelector('#search-add-members').addEventListener(
+        'input',
+        function (e) {
+            renderFriendListCheckbox(
+                document.querySelector('#add-member-modal').querySelector('form[name="addMemberForm"]'),
+                friends
+                    .filter(friend => !memberIds.includes(friend.id) && friend.fullname.toUpperCase().includes(e.target.value.toUpperCase()))
+                    .reduce((prev, cur) => {
+                        let firstLetter = cur['fullname'][0].toUpperCase();
+                        if (prev[firstLetter]) {
+                            prev[firstLetter].push(cur);
+                        } else {
+                            prev[firstLetter] = [cur];
+                        }
+                        return prev;
+                    }, {}),
+                'add-member-user-checkbox',
+                'add-member',
+            );
+        },
+    );
 });
 
 updateAvatarInput.addEventListener('change', function (event) {
@@ -2470,6 +2568,13 @@ updateAvatarInput.addEventListener('change', function (event) {
             showToast({
                 text: 'Cập nhật ảnh thành công!!! \nLàm mới trang để hiển thị thay đổi',
                 type: 'success',
+            });
+        },
+        error: function (data) {
+            console.log(JSON.parse(data));
+            showToast({
+                text: 'Cập nhật không thành công',
+                type: 'error',
             });
         },
     });
@@ -2503,6 +2608,8 @@ $('#nav-list a').on('click', function (e) {
             }),
         );
     }
+    document.querySelector("#search-result")?.remove();
+    document.querySelector("#friends-tab .friend-list")?.classList.remove("d-none");
     createGroupForm.reset();
     searchConversationForm.reset();
     searchForm.reset();

@@ -145,7 +145,7 @@ public class MessageService {
         String sql = "INSERT INTO `messages` (group_id, sender_id, message) VALUES (?, ?, ?)";
         PreparedStatement statement = null;
         try {
-            statement = statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, groupId);
             statement.setString(2, senderId);
             statement.setString(3, message);
@@ -175,7 +175,7 @@ public class MessageService {
         String sql = "INSERT INTO `messages` (group_id, sender_id, message, format) VALUES (?, ?, ?, ?)";
         PreparedStatement statement = null;
         try {
-            statement = statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             statement.setString(1, groupId);
             statement.setString(2, senderId);
             statement.setString(3, message);
@@ -248,7 +248,6 @@ public class MessageService {
             }
         }
     }
-
 
     public List<Message> getMessageJustSeen(String groupId, String messageIdsStr) throws SQLException {
 

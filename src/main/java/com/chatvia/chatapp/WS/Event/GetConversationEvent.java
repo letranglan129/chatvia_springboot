@@ -6,7 +6,7 @@ public class GetConversationEvent {
     @SerializedName("command")
     private String command;
     @SerializedName("userId")
-    private String userId;
+    private Integer userId;
 
     public String getCommand() {
         return command;
@@ -16,11 +16,11 @@ public class GetConversationEvent {
         this.command = command;
     }
 
-    public String getUserId() {
+    public Integer getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(Integer userId) {
         this.userId = userId;
     }
 }

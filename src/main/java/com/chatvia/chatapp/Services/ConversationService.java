@@ -210,7 +210,7 @@ public class ConversationService {
         String sql = "INSERT INTO `groups` (name, type) VALUES ('', 'dou')";
         PreparedStatement statement = null;
         try {
-            statement = statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
             int affectedRows = statement.executeUpdate();
             if (affectedRows == 0) {
                 throw new SQLException("Inserting group failed, no rows affected.");
@@ -239,7 +239,7 @@ public class ConversationService {
                 "WHERE (user_id = ? AND blocked_user_id = ?) OR (user_id = ? AND blocked_user_id = ?) LIMIT 1";
         PreparedStatement statement = null;
         try {
-            statement = statement = connection.prepareStatement(sql);
+            statement = connection.prepareStatement(sql);
             statement.setString(1, senderId);
             statement.setString(2, receiverId);
             statement.setString(3, receiverId);
@@ -369,7 +369,7 @@ public class ConversationService {
         String sql = "INSERT INTO `groups`(`name`, `desc`, `owner`, `type`, `avatar`) VALUES (?, ?, ?, 'multi', ?)";
         PreparedStatement statement = null;
         try {
-            statement = statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
             statement.setString(1, name);
             statement.setString(2, desc);
@@ -400,5 +400,66 @@ public class ConversationService {
 
         return null;
     }
+
+    public int outConversation(String groupId, String userId)  throws SQLException {
+        String sql = "DELETE FROM group_members WHERE group_id = ? AND user_id = ?";
+
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, groupId);
+            statement.setString(2, userId);
+
+            return statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+
+        return 0;
+    }
+
+    public void deleteGroup(String groupId, String ownerId)  throws SQLException {
+        String sql = "DELETE FROM `groups` WHERE id = ? and owner = ?";
+
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, groupId);
+            statement.setString(2, ownerId);
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+    }
+
+
+    public void updateOwner(String groupId, String ownerId)  throws SQLException {
+        String sql = "UPDATE `groups` SET owner = ? WHERE id = ?";
+
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, ownerId);
+            statement.setString(2, groupId);
+
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+    }
+
 
 }

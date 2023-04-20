@@ -22,6 +22,14 @@ public class Group {
     @SerializedName("members")
     private List<User> members;
 
+    public String getLastMessage() {
+        return lastMessage;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
     public void setLastMessage(String lastMessage) {
         this.lastMessage = lastMessage;
     }

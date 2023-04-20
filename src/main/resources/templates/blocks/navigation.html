@@ -51,17 +51,11 @@
 
         <!-- Avatar -->
         <li class="nav-item mt-xl-auto mb-5" role="presentation">
-<!--            <a class="text-decoration-none" onclick="showAccountModal(<?php echo Session::data('user')['id'] ?>)" title="Account">-->
-<!--                <div class="avatar avatar-online avatar-sm avatar-owner">-->
-<!--                    <?php-->
-<!--                    if (isset(Session::data('user')['avatar'])) {-->
-<!--                        echo ("<img src='" . Session::data('user')['avatar'] . "' alt='' >");-->
-<!--                    } else {-->
-<!--                    echo ("<span class='avatar-label bg-soft-success text-success fs-6'>" . Ultis::compactName(Session::data('user')['fullname']) . "</span>");-->
-<!--                    }-->
-<!--                    ?>-->
-<!--                </div>-->
-<!--            </a>-->
+            <a class="text-decoration-none" th:attr="onclick=|showAccountModal(${user.id})|" title="Account">
+                <div class="avatar avatar-online avatar-sm avatar-owner">
+                    <div th:remove="tag" th:utext="${avatar}"></div>
+                </div>
+            </a>
         </li>
         <!-- Avatar -->
     </ul>

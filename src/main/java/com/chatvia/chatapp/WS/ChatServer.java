@@ -5,6 +5,7 @@ import com.chatvia.chatapp.Services.*;
 import com.chatvia.chatapp.Ultis.Uploader;
 import com.chatvia.chatapp.WS.Event.*;
 import com.google.gson.*;
+import netscape.javascript.JSObject;
 import org.java_websocket.WebSocket;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
@@ -25,6 +26,8 @@ public class ChatServer extends WebSocketServer {
     public GroupMemberService groupMemberService;
     public MessageService messageService;
     public FileService fileService;
+    public NotifyService notifyService;
+    public FriendService friendService;
     Gson gson = new Gson();
 
     public ChatServer() {
@@ -34,6 +37,8 @@ public class ChatServer extends WebSocketServer {
         messageService = new MessageService();
         groupMemberService = new GroupMemberService();
         fileService = new FileService();
+        notifyService = new NotifyService();
+        friendService = new FriendService();
     }
 
 
@@ -62,7 +67,6 @@ public class ChatServer extends WebSocketServer {
                 List<User> users = null;
 
                 users = userService.getFriends(querymap.get("id"));
-
                 List<Conversation> conversationsPrivate = conversationService.getPrivateConversation(querymap.get("id"));
                 List<Conversation> conversationsMulti = conversationService.getMultiConversation(querymap.get("id"));
                 List<Message> unReadMessages = conversationService.getUnreadMessage(querymap.get("id"));
@@ -95,8 +99,7 @@ public class ChatServer extends WebSocketServer {
 
     @Override
     public void onClose(WebSocket conn, int code, String reason, boolean remote) {
-        System.out.println(conn + " has left the room!");
-
+        clients.remove(conn);
     }
 
     @Override
@@ -104,6 +107,7 @@ public class ChatServer extends WebSocketServer {
         WSEventReceiver res = gson.fromJson(message, WSEventReceiver.class);
         System.out.println(conn + ": " + message);
         System.out.println(res.getEvent());
+        System.out.println(conn.getResourceDescriptor());
         switch (res.getEvent()) {
             case Command.SEND_START_CHAT_PRIVATE: {
                 try {
@@ -214,9 +218,9 @@ public class ChatServer extends WebSocketServer {
                 try {
                     GetConversationEvent getConversationEvent = this.gson.fromJson(message, GetConversationEvent.class);
 
-                    List<Conversation> conversationsPrivate = conversationService.getPrivateConversation(getConversationEvent.getUserId());
-                    List<Conversation> conversationsMulti = conversationService.getMultiConversation(getConversationEvent.getUserId());
-                    List<Message> unReadMessages = conversationService.getUnreadMessage(getConversationEvent.getUserId());
+                    List<Conversation> conversationsPrivate = conversationService.getPrivateConversation(Integer.toString(getConversationEvent.getUserId()));
+                    List<Conversation> conversationsMulti = conversationService.getMultiConversation(Integer.toString(getConversationEvent.getUserId()));
+                    List<Message> unReadMessages = conversationService.getUnreadMessage(Integer.toString(getConversationEvent.getUserId()));
 
                     JsonObject conversationDataEvent = new JsonObject();
                     JsonArray conversationsPrivateObject = gson.toJsonTree(conversationsPrivate).getAsJsonArray();
@@ -568,7 +572,7 @@ public class ChatServer extends WebSocketServer {
                     DeleteMessageEvent deleteMessageEvent = this.gson.fromJson(message, DeleteMessageEvent.class);
                     List<String> userIds = conversationService.getUserIdInGroup(Integer.toString(deleteMessageEvent.getGroupId()));
 
-                    if(deleteMessageEvent.getType().equals("all")) {
+                    if (deleteMessageEvent.getType().equals("all")) {
                         messageService.deleteMessage(Integer.toString(deleteMessageEvent.getMessageId()), userIds);
                     } else {
                         messageService.deleteMessage(Integer.toString(deleteMessageEvent.getMessageId()), Integer.toString(deleteMessageEvent.getUserId()));
@@ -602,11 +606,11 @@ public class ChatServer extends WebSocketServer {
 
                     List<String> messageIds = messageService.getMessageIdsInGroup(deleteMessageEvent.getGroupId());
 
-                    if(messageIds.size() > 0 && messageIds != null) {
+                    if (messageIds.size() > 0 && messageIds != null) {
                         messageService.deleteMessage(messageIds, Integer.toString(deleteMessageEvent.getUserId()));
 
-                        deleteConversationObject.addProperty("event","onDeleteConversation");
-                        deleteConversationObject.addProperty("result",true);
+                        deleteConversationObject.addProperty("event", "onDeleteConversation");
+                        deleteConversationObject.addProperty("result", true);
 
                         for (WebSocket client : clients.keySet()) {
                             if (client.equals(conn)) {
@@ -622,7 +626,449 @@ public class ChatServer extends WebSocketServer {
                 break;
             }
 
+            case Command.SEND_OUT_GROUP: {
+                try {
+                    JsonObject deleteConversationObject = new JsonObject();
+                    OutGroupEvent outGroupEvent = this.gson.fromJson(message, OutGroupEvent.class);
+
+                    int rowsChange = conversationService.outConversation(outGroupEvent.getGroupId(), Integer.toString(outGroupEvent.getUserId()));
+
+                    List<String> userIds = conversationService.getUserIdInGroup(outGroupEvent.getGroupId());
+                    User user = userService.findUserById(outGroupEvent.getUserId());
+                    messageService.insertMessage(outGroupEvent.getGroupId(), "0", user.getFullname() + " đã rời khỏi nhóm");
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue()) || client.getKey() == conn) {
+                            JsonObject jsonObject = new JsonObject();
+                            jsonObject.addProperty("event", "onSomeoneExitGroup");
+                            jsonObject.addProperty("groupId", outGroupEvent.getGroupId());
+                            jsonObject.addProperty("userId", outGroupEvent.getUserId());
+
+                            if (client.getKey() != null)
+                                client.getKey().send(jsonObject.toString());
+                        }
+
+                        if (client.getKey() == conn) {
+                            JsonObject jsonObject = new JsonObject();
+                            jsonObject.addProperty("event", "onOutGroup");
+                            jsonObject.addProperty("result", rowsChange == 1);
+
+                            if (client.getKey() != null)
+                                client.getKey().send(jsonObject.toString());
+                        }
+                    }
+
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_ADD_MEMBER_TO_GROUP: {
+                try {
+                    JsonObject addMemberToGroupObject = new JsonObject();
+                    AddMemberToGroupEvent addMemberToGroupEvent = this.gson.fromJson(message, AddMemberToGroupEvent.class);
+
+                    String messageIds = String.join(", ", addMemberToGroupEvent.getMembers());
+
+                    List<User> users = userService.getUserByIds(messageIds);
+
+                    List<String> fullnames = new ArrayList<>();
+                    for (User user : users) {
+                        fullnames.add("<b>" + user.getFullname() + "</b>");
+                    }
+                    String stringFullnames = String.join(", ", fullnames);
+
+                    groupMemberService.insertMember(addMemberToGroupEvent.getGroupId(), addMemberToGroupEvent.getMembers().stream().map(Integer::parseInt).collect(Collectors.toList()));
+
+                    messageService.insertMessage(addMemberToGroupEvent.getGroupId(), "0", stringFullnames + " đã được thêm vào nhóm");
+
+                    List<String> userIds = conversationService.getUserIdInGroup(addMemberToGroupEvent.getGroupId());
+
+                    JsonArray membersObj = gson.toJsonTree(addMemberToGroupEvent.getMembers()).getAsJsonArray();
+
+                    addMemberToGroupObject.addProperty("event", "onAddMemberToGroup");
+                    addMemberToGroupObject.add("members", membersObj);
+                    addMemberToGroupObject.addProperty("groupId", addMemberToGroupEvent.getGroupId());
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue()) || client.getKey() == conn) {
+                            if (client.getKey() != null)
+                                client.getKey().send(addMemberToGroupObject.toString());
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_DELETE_GROUP: {
+                try {
+                    int userId = getIdConnected(conn);
+
+                    JsonObject deleteGroupObject = new JsonObject();
+                    DeleteGroupEvent deleteGroupEvent = this.gson.fromJson(message, DeleteGroupEvent.class);
+
+                    List<String> userIds = conversationService.getUserIdInGroup(deleteGroupEvent.getGroupId());
+
+                    Group group = conversationService.getGroupById(deleteGroupEvent.getGroupId());
+
+                    if (group != null && group.getOwner().equals(Integer.toString(deleteGroupEvent.getOwnerId())) && userId == deleteGroupEvent.getOwnerId()) {
+                        conversationService.deleteGroup(deleteGroupEvent.getGroupId(), Integer.toString(deleteGroupEvent.getOwnerId()));
+                        deleteGroupObject.addProperty("event", "onDeleteGroup");
+                        deleteGroupObject.addProperty("groupId", group.getId());
+
+                        for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                            if (userIds.contains(client.getValue()) || client.getKey() == conn) {
+                                if (client.getKey() != null)
+                                    client.getKey().send(deleteGroupObject.toString());
+                            }
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_UNFRIEND: {
+                try {
+                    JsonObject unfriendObject = new JsonObject();
+                    UnfriendEvent unfriendEvent = this.gson.fromJson(message, UnfriendEvent.class);
+
+                    int rowsChange = userService.unfriend(Integer.toString(unfriendEvent.getUserId()), Integer.toString(unfriendEvent.getFriendId()));
+
+                    if (rowsChange > 0) {
+                        unfriendObject.addProperty("event", "onUnfriend");
+                        for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                            if (client.getKey() == conn || client.getValue().equals(Integer.toString(unfriendEvent.getFriendId()))) {
+                                if (client.getKey() != null)
+                                    client.getKey().send(unfriendObject.toString());
+                            }
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_ADD_FRIEND: {
+                try {
+                    AddFriendEvent addfriendEvent = this.gson.fromJson(message, AddFriendEvent.class);
+
+                    if (addfriendEvent.getReceiverId() == null || addfriendEvent.getSenderId() == null)
+                        break;
+
+                    User friend = userService.findUserById(addfriendEvent.getReceiverId());
+
+                    if (friend == null)
+                        break;
+
+                    notifyService.insert(Integer.toString(addfriendEvent.getReceiverId()), "friend_request", "Gửi lời mời kết bạn.", Integer.toString(addfriendEvent.getSenderId()));
+                    friendService.insertAddFriendRequest(Integer.toString(addfriendEvent.getSenderId()), Integer.toString(addfriendEvent.getReceiverId()), "pending");
+
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn) {
+                            JsonObject addfriendObject = new JsonObject();
+
+                            addfriendObject.addProperty("event", "onSendAddFriend");
+                            addfriendObject.addProperty("status", "success");
+                            addfriendObject.addProperty("msg", "Gửi lời mời kết bạn thành công");
+
+                            if (client.getKey() != null)
+                                client.getKey().send(addfriendObject.toString());
+                        }
+
+                        if (client.getValue().equals(Integer.toString(addfriendEvent.getReceiverId()))) {
+                            JsonObject addfriendObject = new JsonObject();
+
+                            addfriendObject.addProperty("event", "onAcceptFriend");
+                            addfriendObject.addProperty("status", "success");
+                            addfriendObject.addProperty("msg", addfriendEvent.getSenderName() + " gửi lời mời kết bạn.");
+                            if (client.getKey() != null)
+                                client.getKey().send(addfriendObject.toString());
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_GET_NOTIFICATIONS: {
+                try {
+                    GetNottificationEvent getNottificationEvent = this.gson.fromJson(message, GetNottificationEvent.class);
+
+                    List<Notification> notificationReaded = notifyService.getNotify(Integer.toString(getNottificationEvent.getUserId()), true);
+                    List<Notification> notificationUnreaded = notifyService.getNotify(Integer.toString(getNottificationEvent.getUserId()), false);
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn) {
+                            JsonObject getNotificationObj = new JsonObject();
+
+                            getNotificationObj.addProperty("event", "onGetNotifications");
+                            getNotificationObj.add("notifyReaded", gson.toJsonTree(notificationReaded).getAsJsonArray());
+                            getNotificationObj.add("notifyUnread", gson.toJsonTree(notificationUnreaded).getAsJsonArray());
+                            if (client.getKey() != null)
+                                client.getKey().send(getNotificationObj.toString());
+                        }
+                    }
+
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_GET_FRIENDS: {
+                try {
+                    int userId = getIdConnected(conn);
+                    GetFriendEvent getFriendEvent = this.gson.fromJson(message, GetFriendEvent.class);
+
+                    List<User> friends = userService.getFriends(Integer.toString(userId));
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn) {
+                            JsonObject getFriendObj = new JsonObject();
+
+                            getFriendObj.addProperty("event", "onGetFriends");
+                            getFriendObj.add("friends", gson.toJsonTree(friends).getAsJsonArray());
+                            if (client.getKey() != null)
+                                client.getKey().send(getFriendObj.toString());
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_ACCEPT_FRIEND: {
+                try {
+                    AcceptFriendEvent acceptFriendEvent = this.gson.fromJson(message, AcceptFriendEvent.class);
+
+                    if (acceptFriendEvent.getNotifyId() == null) {
+                        Notification notification = notifyService.getNotifyByFromIdAndUserId(Integer.toString(acceptFriendEvent.getReceiverId()), Integer.toString(acceptFriendEvent.getSenderId()));
+                        if (notification == null)
+                            break;
+                        acceptFriendEvent.setNotifyId(Integer.parseInt(notification.getId()));
+                    }
+
+                    User receiver = userService.findUserById(acceptFriendEvent.getReceiverId());
+                    User sender = userService.findUserById(acceptFriendEvent.getSenderId());
+                    notifyService.insert(Integer.toString(acceptFriendEvent.getSenderId()), "friend_request_accepted", Integer.toString(acceptFriendEvent.getReceiverId()));
+                    notifyService.updateContent(Integer.toString(acceptFriendEvent.getNotifyId()), "new_message", "Bạn và " + sender.getFullname() + " đã trở thành bạn bè.", "0");
+
+                    friendService.updateStatus(Integer.toString(acceptFriendEvent.getSenderId()), Integer.toString(acceptFriendEvent.getReceiverId()), "accepted");
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn) {
+                            JsonObject acceptFriendObj = new JsonObject();
+
+                            acceptFriendObj.addProperty("event", "onAcceptFriend");
+                            acceptFriendObj.addProperty("msg", "Bạn và " + sender.getFullname() + " đã trở thành bạn bè.");
+                            if (client.getKey() != null)
+                                client.getKey().send(acceptFriendObj.toString());
+                        }
+
+                        if (client.getValue().equals(Integer.toString(acceptFriendEvent.getSenderId()))) {
+                            JsonObject acceptFriendObj = new JsonObject();
+
+                            acceptFriendObj.addProperty("event", "onAcceptFriend");
+                            acceptFriendObj.addProperty("msg", receiver.getFullname() + " đã chấn nhận lời mời kết bạn.");
+                            if (client.getKey() != null)
+                                client.getKey().send(acceptFriendObj.toString());
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_READ_NOTIFY: {
+                try {
+                    ReadNotifyEvent readNotifyEvent = this.gson.fromJson(message, ReadNotifyEvent.class);
+                    if (readNotifyEvent.getNotifyIds().size() > 0) {
+                        notifyService.updateReaded(String.join(",", readNotifyEvent.getNotifyIds()));
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_CANCEL_REQUEST_ADD_FRIEND: {
+                try {
+                    CancelRequestAddFriendEvent cancelRequestAddFriendEvent = this.gson.fromJson(message, CancelRequestAddFriendEvent.class);
+                    friendService.deleteFriendShip(Integer.toString(cancelRequestAddFriendEvent.getUserId()), Integer.toString(cancelRequestAddFriendEvent.getFriendId()));
+                    notifyService.deleteNotifyWithFromId(Integer.toString(cancelRequestAddFriendEvent.getUserId()), Integer.toString(cancelRequestAddFriendEvent.getFriendId()));
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn || client.getValue().equals(Integer.toString(cancelRequestAddFriendEvent.getFriendId()))) {
+                            JsonObject cancelRequestAddFriendObj = new JsonObject();
+
+                            cancelRequestAddFriendObj.addProperty("event", "cancelRequestAddFriend");
+                            if (client.getKey() != null)
+                                client.getKey().send(cancelRequestAddFriendObj.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_BLOCK_USER: {
+                try {
+                    BlockUserEvent blockUserEvent = this.gson.fromJson(message, BlockUserEvent.class);
+                    friendService.blockUser(Integer.toString(blockUserEvent.getUserId()), Integer.toString(blockUserEvent.getFriendId()));
+                    friendService.deleteFriendShip(Integer.toString(blockUserEvent.getUserId()), Integer.toString(blockUserEvent.getFriendId()));
+                    String groupId = conversationService.checkDouGroupExist(blockUserEvent.getUserId(), blockUserEvent.getFriendId());
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn || client.getValue().equals(Integer.toString(blockUserEvent.getFriendId()))) {
+                            JsonObject blockUserObj = new JsonObject();
+
+                            blockUserObj.addProperty("event", "onBlockUser");
+                            blockUserObj.addProperty("groupId", groupId);
+                            if (client.getKey() != null)
+                                client.getKey().send(blockUserObj.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_UNBLOCK_USER: {
+                try {
+                    UnblockUserEvent unblockUserEvent = this.gson.fromJson(message, UnblockUserEvent.class);
+                    friendService.unblockUser(Integer.toString(unblockUserEvent.getUserId()), Integer.toString(unblockUserEvent.getFriendId()));
+                    String groupId = conversationService.checkDouGroupExist(unblockUserEvent.getUserId(), unblockUserEvent.getFriendId());
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (client.getKey() == conn || client.getValue().equals(Integer.toString(unblockUserEvent.getFriendId()))) {
+                            JsonObject cancelRequestAddFriendObj = new JsonObject();
+
+                            cancelRequestAddFriendObj.addProperty("event", "onUnblockUser");
+                            cancelRequestAddFriendObj.addProperty("groupId", groupId);
+                            if (client.getKey() != null)
+                                client.getKey().send(cancelRequestAddFriendObj.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_SET_OWNER_GROUP: {
+                try {
+                    SetOwnerGroupEvent setOwnerGroupEvent = this.gson.fromJson(message, SetOwnerGroupEvent.class);
+                    conversationService.updateOwner(Integer.toString(setOwnerGroupEvent.getGroupId()), Integer.toString(setOwnerGroupEvent.getUserId()));
+
+                    User owner = userService.findUserById(setOwnerGroupEvent.getUserId());
+
+                    messageService.insertMessage(Integer.toString(setOwnerGroupEvent.getGroupId()), "0", owner.getFullname() + " đã được bổ nhiệm làm trưởng nhóm");
+
+                    List<String> userIds = conversationService.getUserIdInGroup(Integer.toString(setOwnerGroupEvent.getGroupId()));
+
+                    JsonObject setOwnerObj = new JsonObject();
+                    setOwnerObj.addProperty("event", "onNewMessage");
+                    setOwnerObj.addProperty("groupId", Integer.toString(setOwnerGroupEvent.getGroupId()));
+                    setOwnerObj.addProperty("result", true);
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue())) {
+                            if (client.getKey() != null)
+                                client.getKey().send(setOwnerObj.toString());
+                        }
+                    }
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case Command.SEND_GET_ONLINE: {
+                try {
+                    GetOnlineEvent setOwnerGroupEvent = this.gson.fromJson(message, GetOnlineEvent.class);
+
+                    List<User> users = userService.getFriends(Integer.toString(setOwnerGroupEvent.getId()));
+                    List<String> userIds = users.stream().map(user -> Integer.toString(user.getId())).collect(Collectors.toList());
+
+                    List<String> onlineIds = new ArrayList<>();
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        System.out.println(clients.values());
+                        if(userIds.contains(client.getValue())) {
+                            onlineIds.add(client.getValue());
+                        }
+                    }
+
+                    for (int i = 0; i < users.size(); i++) {
+                        if(onlineIds.contains(Integer.toString(users.get(i).getId()))) {
+                            users.get(i).setOnline(true);
+                        } else {
+                            users.get(i).setOnline(false);
+                        }
+                    }
+
+                    JsonObject getOnlineObj = new JsonObject();
+
+                    getOnlineObj.addProperty("event", "onGetOnline");
+                    getOnlineObj.add("friends", gson.toJsonTree(users).getAsJsonArray());
+
+                    conn.send(getOnlineObj.toString());
+
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+                break;
+            }
+
         }
+    }
+
+    public int getIdConnected(WebSocket conn) {
+        String querystring = conn.getResourceDescriptor().split("\\?")[1];
+        Map<String, String> querymap = new HashMap<String, String>();
+
+        for (String param : querystring.split("&")) {
+            String[] pair = param.split("=");
+            querymap.put(pair[0], pair[1]);
+        }
+
+        if (querymap.containsKey("id")) {
+            int userId = Integer.parseInt(querymap.get("id"));
+            return userId;
+        }
+        return -1;
     }
 
     private List<Message> mergeMessageImage(List<Message> messagesMedia) {

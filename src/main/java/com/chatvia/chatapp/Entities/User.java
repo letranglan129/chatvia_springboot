@@ -1,5 +1,7 @@
 package com.chatvia.chatapp.Entities;
 
+import com.google.gson.annotations.SerializedName;
+
 public class User {
     private Integer id;
     private String email;
@@ -9,6 +11,62 @@ public class User {
     private Integer connectId;
     private String avatar;
     private String status;
+    private String blockBy;
+    private String blockedUserId;
+    @SerializedName("friend_id")
+    private String reqFriendId;
+    @SerializedName("user_id")
+    private String reqUserId;
+    private String describe;
+    private Boolean isOnline;
+
+    public Boolean getOnline() {
+        return isOnline;
+    }
+
+    public void setOnline(Boolean online) {
+        isOnline = online;
+    }
+
+    public String getDescribe() {
+        return describe;
+    }
+
+    public void setDescribe(String describe) {
+        this.describe = describe;
+    }
+
+    public String getReqFriendId() {
+        return reqFriendId;
+    }
+
+    public void setReqFriendId(String reqFriendId) {
+        this.reqFriendId = reqFriendId;
+    }
+
+    public String getReqUserId() {
+        return reqUserId;
+    }
+
+    public void setReqUserId(String reqUserId) {
+        this.reqUserId = reqUserId;
+    }
+
+    public String getBlockBy() {
+        return blockBy;
+    }
+
+    public void setBlockBy(String blockBy) {
+        this.blockBy = blockBy;
+    }
+
+    public String getBlockedUserId() {
+        return blockedUserId;
+    }
+
+    public void setBlockedUserId(String blockedUserId) {
+        this.blockedUserId = blockedUserId;
+    }
 
     public String getStatus() {
         return status;
