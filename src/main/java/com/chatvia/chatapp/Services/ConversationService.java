@@ -329,7 +329,16 @@ public class ConversationService {
                 "(SELECT `status` FROM friends WHERE\n" +
                 "(friends.user_id = ? AND users.id = friends.friend_id) \n" +
                 "OR (friends.friend_id = ? AND friends.user_id = users.id) \n" +
-                ") AS `status` \n" +
+                ") AS `status`, (SELECT user_id FROM friends\n" +
+                "WHERE (user_id = ? OR friend_id = ?) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS user_id,\n" +
+                "(SELECT friend_id FROM friends\n" +
+                "WHERE (user_id = ? OR friend_id = ?) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id, (\n" +
+                "select user_id\n" +
+                "FROM blocked_users\n" +
+                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) as blockBy, (\n" +
+                "select blocked_user_id\n" +
+                "FROM blocked_users\n" +
+                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) as blocked_user_id \n" +
                 "FROM group_members, users \n" +
                 "WHERE group_id = ? AND user_id = users.id";
 
@@ -339,7 +348,15 @@ public class ConversationService {
             statement = connection.prepareStatement(sql);
             statement.setString(1, userId);
             statement.setString(2, userId);
-            statement.setString(3, groupId);
+            statement.setString(3, userId);
+            statement.setString(4, userId);
+            statement.setString(5, userId);
+            statement.setString(6, userId);
+            statement.setString(7, userId);
+            statement.setString(8, userId);
+            statement.setString(9, userId);
+            statement.setString(10, userId);
+            statement.setString(11, groupId);
             ResultSet resultSet = statement.executeQuery();
             while (resultSet.next()) {
                 User user = new User();
@@ -351,6 +368,8 @@ public class ConversationService {
                 user.setConnectId(resultSet.getInt("connectid"));
                 user.setAvatar(resultSet.getString("avatar"));
                 user.setStatus(resultSet.getString("status"));
+                user.setReqUserId(resultSet.getString("user_id"));
+                user.setReqFriendId(resultSet.getString("friend_id"));
                 users.add(user);
             }
             return users;

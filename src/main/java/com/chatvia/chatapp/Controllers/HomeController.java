@@ -40,6 +40,10 @@ public class HomeController {
             User me = new Gson().fromJson(meStr, User.class);
             me = userService.findUserById(me.getId());
 
+            if(me == null) {
+                return "redirect:/login";
+            }
+
             Cookie cookie = new Cookie("USER", URLEncoder.encode(new Gson().toJson(me), "UTF-8"));
             response.addCookie(cookie);
 

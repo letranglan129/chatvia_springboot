@@ -250,7 +250,7 @@ public class ChatServer extends WebSocketServer {
                     String tempMessageIdsString = "0";
                     JsonObject sentMessageObject = new JsonObject();
 
-                    List<String> messageIds = messageService.getMessageIdsInGroup(sentMessageEvent.getGroupId());
+                    List<String> messageIds = messageService.getMessageIdsInGroup(sentMessageEvent.getGroupId(), sentMessageEvent.getUserId());
 
                     if (messageIds.size() > 0) {
                         messageService.updateBatchMessageSeen(sentMessageEvent.getUserId(), messageIds);
@@ -269,6 +269,28 @@ public class ChatServer extends WebSocketServer {
                         if (userIds.contains(client.getValue())) {
                             if (client.getKey() != null)
                                 client.getKey().send(sentMessageObject.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
+            case "getMembersOfGroup": {
+                try {
+                    JsonObject startChatMultiObject = new JsonObject();
+                    StartChatMultiEvent startChatMultiEvent = this.gson.fromJson(message, StartChatMultiEvent.class);
+                    List<User> members = conversationService.getMemberInGroup(Integer.toString(startChatMultiEvent.getGroupId()), Integer.toString(startChatMultiEvent.getUserId()));
+
+                    JsonArray membersJson = gson.toJsonTree(members).getAsJsonArray();
+                    startChatMultiObject.add("members", membersJson);
+                    startChatMultiObject.addProperty("event", "onGetMembersOfGroup");
+
+                    for (WebSocket client : clients.keySet()) {
+                        if (client.equals(conn)) {
+                            client.send(startChatMultiObject.toString());
                         }
                     }
                 } catch (SQLException throwables) {

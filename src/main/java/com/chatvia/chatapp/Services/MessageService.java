@@ -228,6 +228,33 @@ public class MessageService {
         return messageIds;
     }
 
+    public List<String> getMessageIdsInGroup(String groupId, String userId) throws SQLException {
+        String sql = "SELECT id\n" +
+                "FROM messages\n" +
+                "WHERE group_id = ? and sender_id != ?";
+
+        List<String> messageIds = new ArrayList<>();
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(sql);
+            statement.setString(1, groupId);
+            statement.setString(2, userId);
+            ResultSet resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                messageIds.add(resultSet.getString("id"));
+            }
+            return messageIds;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }finally {
+            if (statement != null) {
+                statement.close();
+            }
+        }
+
+        return messageIds;
+    }
+
     public void updateBatchMessageSeen(String userId, List<String> messageIds) throws SQLException {
         String sql = "INSERT IGNORE INTO viewed_messages(message_id, user_id) VALUES (?, ?)";
         PreparedStatement statement = null;

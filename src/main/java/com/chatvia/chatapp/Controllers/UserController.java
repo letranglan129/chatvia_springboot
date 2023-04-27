@@ -30,6 +30,8 @@ import org.mindrot.jbcrypt.BCrypt;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.Base64;
 import java.util.List;
@@ -157,7 +159,18 @@ public class UserController {
     }
 
     @GetMapping("/register")
-    public String registerPage() {
+    public String registerPage(@CookieValue(value = "USER", defaultValue = "") String userCookie) throws SQLException, UnsupportedEncodingException {
+        UserService userService = new UserService();
+        if (!userCookie.trim().equals("") && userCookie != null) {
+            String meStr = URLDecoder.decode(userCookie, "UTF-8");
+
+            User me = new Gson().fromJson(meStr, User.class);
+            me = userService.findUserById(me.getId());
+
+            if(me != null) {
+                return "redirect:/";
+            }
+        }
         return "register";
     }
 
@@ -196,7 +209,18 @@ public class UserController {
     }
 
     @GetMapping("/login")
-    public String loginPage(Boolean isSuccess, ModelMap model) {
+    public String loginPage(Boolean isSuccess, ModelMap model, @CookieValue(value = "USER", defaultValue = "") String userCookie) throws UnsupportedEncodingException, SQLException {
+        UserService userService = new UserService();
+        if (!userCookie.trim().equals("") && userCookie != null) {
+            String meStr = URLDecoder.decode(userCookie, "UTF-8");
+
+            User me = new Gson().fromJson(meStr, User.class);
+            me = userService.findUserById(me.getId());
+
+            if(me != null) {
+                return "redirect:/";
+            }
+        }
         model.addAttribute("isSuccess", isSuccess);
         return "login";
     }
