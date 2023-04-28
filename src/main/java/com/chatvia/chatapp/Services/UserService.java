@@ -243,9 +243,9 @@ public class UserService {
                 "(SELECT friend_id FROM friends\n" +
                 "WHERE (user_id = ? OR friend_id = ?) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id,\n" +
                 "(SELECT user_id FROM blocked_users\n" +
-                "WHERE (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) AS blockBy,\n" +
+                "WHERE (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?) LIMIT 1) AS blockBy,\n" +
                 "(SELECT blocked_user_id FROM blocked_users\n" +
-                "WHERE (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) AS blocked_user_id\n" +
+                "WHERE (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?) LIMIT 1) AS blocked_user_id\n" +
                 "FROM users\n" +
                 "WHERE id NOT IN (?) AND (fullname LIKE ? ESCAPE '!' OR email LIKE ? ESCAPE '!' OR phone LIKE ? ESCAPE '!')";
         List<User> users = new ArrayList<>();

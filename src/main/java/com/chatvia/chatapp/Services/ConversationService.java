@@ -328,17 +328,17 @@ public class ConversationService {
         String sql = "SELECT users.*,\n" +
                 "(SELECT `status` FROM friends WHERE\n" +
                 "(friends.user_id = ? AND users.id = friends.friend_id) \n" +
-                "OR (friends.friend_id = ? AND friends.user_id = users.id) \n" +
+                "OR (friends.friend_id = ? AND friends.user_id = users.id)  LIMIT 1\n" +
                 ") AS `status`, (SELECT user_id FROM friends\n" +
                 "WHERE (user_id = ? OR friend_id = ?) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS user_id,\n" +
                 "(SELECT friend_id FROM friends\n" +
                 "WHERE (user_id = ? OR friend_id = ?) AND (users.id = friend_id OR user_id = users.id) LIMIT 1) AS friend_id, (\n" +
                 "select user_id\n" +
                 "FROM blocked_users\n" +
-                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) as blockBy, (\n" +
+                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?) LIMIT 1) as blockBy, (\n" +
                 "select blocked_user_id\n" +
                 "FROM blocked_users\n" +
-                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?)) as blocked_user_id \n" +
+                "where (user_id = ? and blocked_user_id = id) or (user_id = id AND blocked_user_id = ?) LIMIT 1) as blocked_user_id \n" +
                 "FROM group_members, users \n" +
                 "WHERE group_id = ? AND user_id = users.id";
 
