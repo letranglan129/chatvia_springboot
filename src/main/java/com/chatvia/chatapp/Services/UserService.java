@@ -146,7 +146,7 @@ public class UserService {
     }
 
     public List<User> getFriends(String id) throws SQLException {
-        String sql = "SELECT users.* FROM friends JOIN users ON (friends.user_id = users.id and friends.user_id != ?) or (friends.friend_id = users.id and friends.friend_id != ?) WHERE (friend_id = ? or user_id = ?) and `status` = 'accepted' and id not in (SELECT blocked_user_id FROM blocked_users WHERE user_id = ?) and id not in (SELECT user_id FROM blocked_users WHERE blocked_user_id = ?)";
+        String sql = "SELECT friends.user_id, friends.friend_id, users.*, friends.status FROM friends JOIN users ON (friends.user_id = users.id and friends.user_id != ?) or (friends.friend_id = users.id and friends.friend_id != ?) WHERE (friend_id = ? or user_id = ?) and `status` = 'accepted' and id not in (SELECT blocked_user_id FROM blocked_users WHERE user_id = ?) and id not in (SELECT user_id FROM blocked_users WHERE blocked_user_id = ?)";
         List<User> users = new ArrayList<>();
         PreparedStatement statement = null;
         try {

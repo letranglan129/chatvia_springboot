@@ -83,7 +83,8 @@ public class ConversationService {
                 "    type, `desc`, groups.avatar AS groupAvatar, \n" +
                 "    m.sent_at, m.sender_id, m.fullname, users.avatar AS userAvatar, \n" +
                 "    (SELECT COUNT(*) FROM messages WHERE group_id = group_members.group_id \n" +
-                "    AND messages.id NOT IN (SELECT message_id FROM deleted_messages WHERE user_id = ?)) AS countMessage\n" +
+                "    AND messages.id NOT IN (SELECT message_id FROM deleted_messages WHERE user_id = ?)) AS countMessage,\n" +
+                "   owner" +
                 "FROM group_members\n" +
                 "INNER JOIN `groups` ON groups.id = group_members.group_id\n" +
                 "INNER JOIN users ON users.id = group_members.user_id\n" +
@@ -94,7 +95,7 @@ public class ConversationService {
                 "    WHERE sender_id = users.id ) AS m \n" +
                 "ON m.id = last_message\n" +
                 "WHERE user_id = ? AND `groups`.id = group_members.group_id AND type = 'multi'\n" +
-                "GROUP BY groupId, groupName, message, type, `desc`, groupAvatar, m.sent_at, m.sender_id, m.fullname, userAvatar\n" +
+                "GROUP BY groupId, groupName, message, type, `desc`, groupAvatar, m.sent_at, m.sender_id, m.fullname, userAvatar, owner\n" +
                 "ORDER BY sent_at DESC";
 
         List<Conversation> conversations = new ArrayList<>();

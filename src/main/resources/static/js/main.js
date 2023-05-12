@@ -1,7 +1,7 @@
 const pickerOptions = {
     locale: 'vi',
     onEmojiSelect: e => {
-        messageInput.innerHTML += `<img class="emoji-icon" src='https://projectertest.000webhostapp.com/emoji/${e.unified}.png' onError="this.onError=null;console.clear();this.src='https://twemoji.maxcdn.com/2/72x72/${e.unified}.png'"> `;
+        messageInput.innerHTML += `${e.native} `;
     },
 };
 const picker = new EmojiMart.Picker(pickerOptions);
@@ -40,7 +40,7 @@ const conn = new WebSocket(`ws://localhost:9002?id=${USER?.id}`);
 
 const swiper = new Swiper('.swiper', {
     loop: true,
-
+    autoplay: true,
     pagination: {
         el: '.swiper-pagination',
         clickable: true,
@@ -155,12 +155,12 @@ function handleFileSelect(event, cb) {
 }
 
 function compactName(fullname) {
-    let nameArray = fullname.split(' ');
+    let nameArray = fullname.trim().split(' ');
 
     if (nameArray.length >= 2) {
         let lastName = nameArray[0];
         let firstName = nameArray[nameArray.length - 1];
-        return lastName[0] + firstName[0];
+        return (lastName[0] || '') + (firstName[0] || '');
     } else {
         return fullname[0];
     }
@@ -179,6 +179,7 @@ messageInput.addEventListener('keydown', function (e) {
                 senderId: USER?.id || -1,
                 groupId: activeChat?.type == 'dou' ? activeChat?.groupId : activeChat?.groupInfo?.id,
                 msg: this.innerHTML,
+                msg: this.textContent,
                 command: 'sendMessage',
             }),
         );
@@ -803,7 +804,7 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
                         item.id
-                    }, ${item.group_id})" href="#">Xóa phía tôi
+                    }, ${item.group_id})" >Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
@@ -811,7 +812,7 @@ function renderMessage(format, list) {
 														${
                         Number(USER?.id || -1) == Number(list[0].sender_id)
                             ? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -868,14 +869,14 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
                         item.id
-                    }, ${item.group_id})"  href="#">Xóa phía tôi
+                    }, ${item.group_id})">Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
 														${
                         Number(USER?.id || -1) == Number(list[0].sender_id)
                             ? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -916,14 +917,14 @@ function renderMessage(format, list) {
                                                         <li>
                                                             <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${
                         item.id
-                    }, ${item.group_id})"  href="#">Xóa phía tôi
+                    }, ${item.group_id})">Xóa phía tôi
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>
 														${
                         Number(USER?.id || -1) == Number(list[0].sender_id)
                             ? `<li>
-                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')" href="#">Xóa với mọi người
+                                                            <a class="dropdown-item d-flex align-items-center justify-content-between" onclick="deleteMessage(${item.id}, ${item.group_id}, 'all')">Xóa với mọi người
                                                                 <i class="ri-delete-bin-line"></i>
                                                             </a>
                                                         </li>`
@@ -1322,7 +1323,7 @@ function renderNotification(el, list) {
                     btn = `<div class='card-footer'>
 									<div class='row gx-4'>
 										<div class='col'>
-											<a href='#' onClick="cancelRequestAddFriend(${notify['from_id']})" class='btn btn-secondary btn-sm w-100'>Hủy</a>
+											<a onClick="cancelRequestAddFriend(${notify['from_id']})" class='btn btn-secondary btn-sm w-100'>Hủy</a>
 										</div>
 										<div class='col'>
 											<a onClick='acceptFriend(${notify['from_id']}, ${notify['user_id']}, ${notify['id']})' class='btn btn-primary btn-sm w-100'>Chấp nhận</a>

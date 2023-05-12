@@ -74,7 +74,7 @@ public class NotifyService {
     }
 
     public List<Notification> getNotify(String userId, boolean isReaded) throws SQLException {
-        String sql = "SELECT notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar\n" +
+        String sql = "SELECT notifications.id, notifications.user_id, type, payload, created_at, seen_at, fullname, from_id, avatar, is_readed\n" +
                 "FROM notifications\n" +
                 "INNER JOIN users ON notifications.from_id = users.id\n" +
                 "WHERE user_id = ? AND is_readed = ?\n" +
