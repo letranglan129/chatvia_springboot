@@ -900,7 +900,7 @@ function renderMessage(format, list) {
                                                     <i class="ri-download-line"></i>
                                                 </a>
                                                 <div>
-                                                    <h5 class="mb-0">${item.images[0].name}</h5>
+                                                    <h5 class="mb-0" style="word-break: break-all;" >${item.images[0].name}</h5>
                                                 </div>
                                             </div>
                                         </div>
@@ -1717,6 +1717,32 @@ conn.onmessage = function (e) {
 
             renderMenuDropdownConversation(menuDropdownConversation, activeChat?.type, false, activeChat?.blocked);
 
+            document.querySelector('.call-voice-toggle').setAttribute('data-name', data.receiver.fullname);
+            document
+                .querySelector('.call-voice-toggle')
+                .setAttribute(
+                    'data-avatar',
+                    data.receiver?.avatar
+                        ? `<img src="${data.receiver?.avatar}" alt="" id="settingAvatarPreview">`
+                        : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data.receiver.fullname,
+                        )}</span>`,
+                );
+            document.querySelector('.call-voice-toggle').setAttribute('data-groupid', data?.groupId);
+
+            document.querySelector('.call-video-toggle').setAttribute('data-name', data.receiver.fullname);
+            document
+                .querySelector('.call-video-toggle')
+                .setAttribute(
+                    'data-avatar',
+                    data.receiver?.avatar
+                        ? `<img src="${data.receiver?.avatar}" alt="" id="settingAvatarPreview">`
+                        : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data.receiver.fullname,
+                        )}</span>`,
+                );
+            document.querySelector('.call-video-toggle').setAttribute('data-groupid', data?.groupId);
+
             document.querySelector('#chatDetailDeleteBtn').onclick = function () {
                 deleteConversation(data.groupId, USER?.id || '-1');
                 getConversation();
@@ -2008,6 +2034,32 @@ conn.onmessage = function (e) {
                 activeChat?.blocked
             );
 
+            document.querySelector('.call-voice-toggle').setAttribute('data-name', data?.groupInfo?.name || '');
+            document
+                .querySelector('.call-voice-toggle')
+                .setAttribute(
+                    'data-avatar',
+                    data?.groupInfo?.avatar
+                        ? `<img src="${data?.groupInfo?.avatar}" alt="" id="settingAvatarPreview">`
+                        : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data?.groupInfo.name,
+                        )}</span>`,
+                );
+            document.querySelector('.call-voice-toggle').setAttribute('data-groupid', activeChat?.groupInfo?.id);
+
+            document.querySelector('.call-video-toggle').setAttribute('data-name', data?.groupInfo?.name || '');
+            document
+                .querySelector('.call-video-toggle')
+                .setAttribute(
+                    'data-avatar',
+                    data?.groupInfo?.avatar
+                        ? `<img src="${data?.groupInfo?.avatar}" alt="" id="settingAvatarPreview">`
+                        : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data?.groupInfo.name,
+                        )}</span>`,
+                );
+            document.querySelector('.call-video-toggle').setAttribute('data-groupid', activeChat?.groupInfo?.id);
+
             document.querySelector('#chatDetailDeleteBtn').onclick = function () {
                 deleteConversation(data?.groupInfo?.id || '0', USER?.id || '-1');
                 getConversation();
@@ -2155,8 +2207,214 @@ conn.onmessage = function (e) {
             }
             break;
         }
+        case 'onSendCall': {
+            if (data?.type == 'voice') {
+                $('#call-voice-incoming-modal').modal('show');
+                document.querySelector('#call-voice-incoming-modal .call .avatar').innerHTML = data?.senderAvatar
+                    ? `<img src="${data?.senderAvatar}" alt="" id="settingAvatarPreview">`
+                    : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data?.groupInfo.name,
+                    )}</span>`;
+                document.querySelector('#call-voice-incoming-modal .call .name').innerHTML = data?.senderName;
+
+                document
+                    .querySelector('#call-voice-incoming-modal .call .accept-call')
+                    .addEventListener('click', () => {
+                        conn.send(
+                            JSON.stringify({
+                                command: 'acceptCall',
+                                groupId: data?.groupId,
+                                roomId: data?.roomId,
+                                type: data?.type,
+                            }),
+                        );
+                    });
+
+                document.querySelector('#call-voice-incoming-modal .call .end-call').addEventListener('click', e => {
+                    conn.send(
+                        JSON.stringify({
+                            command: 'cancelCall',
+                            groupId: data?.groupId,
+                            senderId: USER?.id,
+                        }),
+                    );
+                });
+            }
+            if (data?.type == 'video') {
+                $('#call-video-incoming-modal').modal('show');
+                document.querySelector('#call-video-incoming-modal .call .avatar').innerHTML = data?.senderAvatar
+                    ? `<img src="${data?.senderAvatar}" alt="" id="settingAvatarPreview">`
+                    : `<span class="avatar-label bg-soft-primary text-primary">${compactName(
+                        data?.groupInfo.name,
+                    )}</span>`;
+                document.querySelector('#call-video-incoming-modal .call .name').innerHTML = data?.senderName;
+
+                document
+                    .querySelector('#call-video-incoming-modal .call .accept-call')
+                    .addEventListener('click', () => {
+                        conn.send(
+                            JSON.stringify({
+                                command: 'acceptCall',
+                                groupId: data?.groupId,
+                                roomId: data?.roomId,
+                                type: data?.type,
+                            }),
+                        );
+                    });
+
+                document.querySelector('#call-video-incoming-modal .call .end-call').addEventListener('click', e => {
+                    conn.send(
+                        JSON.stringify({
+                            command: 'cancelCall',
+                            groupId: data?.groupId,
+                            senderId: USER?.id,
+                        }),
+                    );
+                });
+            }
+            break;
+        }
+
+        case 'onAcceptCall': {
+            $('#call-voice-modal').modal('hide');
+            $('#call-video-modal').modal('hide');
+            document.querySelector('#meet').innerHTML = '';
+            const api = getJitsiMeet(
+                data?.roomId,
+                {
+                    displayName: USER?.fullname,
+                    avatar: USER?.avatar,
+                },
+                {
+                    startWithVideoMuted: data?.type == 'voice' ? true : false,
+                },
+            );
+
+            $('#call-container-modal').modal('show');
+            document.querySelector('#minisize-meet').onclick = function (e) {
+                document.querySelector('.modal-backdrop').style.display = 'none';
+                document.querySelector('#call-container-modal').style.height = '300px';
+                document.querySelector('#call-container-modal').style.width = '400px';
+                document.querySelector('#minisize-meet').style.display = 'none';
+                document.querySelector('#maxisize-meet').style.display = 'block';
+
+                document.querySelector('#wrap-window-button').onmousedown = function (event) {
+                    var shiftX =
+                        event.clientX - document.querySelector('#call-container-modal').getBoundingClientRect().left;
+                    var shiftY =
+                        event.clientY - document.querySelector('#call-container-modal').getBoundingClientRect().top;
+
+                    document.onmousemove = function (event) {
+                        document.querySelector('#call-container-modal').style.left = event.pageX - shiftX + 'px';
+                        document.querySelector('#call-container-modal').style.top = event.pageY - shiftY + 'px';
+                    };
+
+                    document.querySelector('#wrap-window-button').onmouseup = function () {
+                        document.onmousemove = null;
+                        document.querySelector('#wrap-window-button').onmouseup = null;
+                    };
+                };
+            };
+
+            document.querySelector('#maxisize-meet').onclick = function (e) {
+                document.querySelector('#minisize-meet').style.display = 'block';
+                document.querySelector('#maxisize-meet').style.display = 'none';
+                document.querySelector('.modal-backdrop').removeAttribute('style');
+                document.querySelector('#call-container-modal').style.height = null;
+                document.querySelector('#call-container-modal').style.width = null;
+                document.querySelector('#call-container-modal').style.left = null;
+                document.querySelector('#call-container-modal').style.top = null;
+                document.querySelector('#wrap-window-button').onmousedown = null;
+            };
+
+            api.addListener('toolbarButtonClicked', event => {
+                if (event.key == 'hangup') {
+                    $('#call-container-modal').modal('hide');
+                    api.executeCommand('hangup');
+                }
+            });
+
+            api.addListener('participantLeft', event => {
+                if (data?.groupType == 'dou') {
+                    $('#call-container-modal').modal('hide');
+                    api.executeCommand('hangup');
+                }
+            });
+
+            api.addListener('errorOccurred', event => {
+                console.log('errorOccurred', event);
+            });
+
+            api.addListener('suspendDetected', event => {
+                console.log('suspendDetected', event);
+            });
+
+            api.addListener('subjectChange', event => {
+                console.log('subjectChange', event);
+            });
+
+            api.addListener('readyToClose', event => {
+                console.log('readyToClose', event);
+            });
+
+            break;
+        }
+
+        case 'onCancelCall': {
+            $('#call-voice-modal').modal('hide');
+            $('#call-voice-incoming-modal').modal('hide');
+            $('#call-video-incoming-modal').modal('hide');
+            $('#call-video-modal').modal('hide');
+            break;
+        }
     }
 };
+
+function getJitsiMeet(roomId, userInfo, configOverwrite = {}) {
+    const domain = 'meet.jit.si';
+    const options = {
+        roomName: roomId,
+        parentNode: document.querySelector('#meet'),
+        userInfo,
+        configOverwrite: {
+            startWithAudioMuted: false,
+            prejoinConfig: {
+                enabled: false,
+            },
+            hideLogo: true,
+
+            interfaceConfigOverwrite: { DISABLE_DOMINANT_SPEAKER_INDICATOR: true },
+            defaultLanguage: 'vi',
+            enableLobbyChat: false,
+            enableWelcomePage: false,
+            enableClosePage: false,
+            disable1On1Mode: true,
+            deeplinking: {
+                hideLogo: true,
+            },
+            disableLocalVideoFlip: false,
+            lobby: {
+                enableChat: false,
+            },
+            toolbarButtons: ['camera', 'microphone', 'hangup', 'desktop', 'filmstrip'],
+            buttonsWithNotifyClick: ['hangup'],
+            translationLanguagesHead: ['vi'],
+            translationLanguages: ['vi'],
+            defaultLogoUrl:
+                'http://chatvia-dark.react.themesbrand.com/static/media/logo.e41f6087382055646c1c02d0a63583d5.svg',
+            remoteVideoMenu: {
+                disableKick: true,
+            },
+            ...configOverwrite,
+        },
+        interfaceConfigOverwrite: {
+            SHOW_PROMOTIONAL_CLOSE_PAGE: false,
+        },
+    };
+
+    const api = new JitsiMeetExternalAPI(domain, options);
+    return api;
+}
 
 messageForm.onsubmit = function (e) {
     e.preventDefault();
@@ -2525,6 +2783,67 @@ document.querySelector('#forward-message-modal').addEventListener('show.bs.modal
                 '+=',
             );
         },
+    );
+});
+
+document.querySelector('#call-voice-modal').addEventListener('show.bs.modal', function (e) {
+    const button = e.relatedTarget;
+    const name = button.dataset.name;
+    const avatar = button.dataset.avatar;
+    const groupId = button.dataset.groupid;
+
+    e.target.querySelector('.call .avatar').innerHTML = avatar;
+    e.target.querySelector('.call .name').innerHTML = name;
+    e.target.querySelector('.call .sub-title').innerHTML = 'Đang gọi thoại...';
+
+    e.target.querySelector('.call .end-call').addEventListener('click', e => {
+        conn.send(
+            JSON.stringify({
+                command: 'cancelCall',
+                groupId: groupId,
+                senderId: USER?.id,
+            }),
+        );
+    });
+
+    conn.send(
+        JSON.stringify({
+            groupId: groupId,
+            senderId: USER?.id,
+            type: 'voice',
+            roomId: `chatvia_${Number(new Date())}`,
+            command: 'sendCall',
+        }),
+    );
+});
+
+document.querySelector('#call-video-modal').addEventListener('show.bs.modal', function (e) {
+    const button = e.relatedTarget;
+    const name = button.dataset.name;
+    const avatar = button.dataset.avatar;
+    const groupId = button.dataset.groupid;
+
+    e.target.querySelector('.call .avatar').innerHTML = avatar;
+    e.target.querySelector('.call .name').innerHTML = name;
+    e.target.querySelector('.call .sub-title').innerHTML = 'Đang gọi video...';
+    e.target.querySelector('.call .end-call').addEventListener('click', e => {
+        conn.send(
+            JSON.stringify({
+                command: 'cancelCall',
+                groupId: groupId,
+                senderId: USER?.id,
+            }),
+        );
+    });
+
+    conn.send(
+        JSON.stringify({
+            groupId: groupId,
+            senderId: USER?.id,
+            type: 'video',
+            roomId: `chatvia_${Number(new Date())}`,
+            command: 'sendCall',
+        }),
     );
 });
 

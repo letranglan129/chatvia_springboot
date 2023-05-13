@@ -74,21 +74,21 @@ public class ConversationService {
     }
 
     public List<Conversation> getMultiConversation(String id) throws SQLException {
-        String sql = "SELECT groups.id AS groupId, groups.name AS groupName, \n" +
+        String sql = "SELECT `groups`.id AS groupId, `groups`.name AS groupName, \n" +
                 "    (SELECT message FROM messages \n" +
                 "    WHERE group_id = group_members.group_id \n" +
                 "    AND messages.id NOT IN (SELECT message_id FROM deleted_messages WHERE user_id = ?) \n" +
                 "    ORDER BY sent_at DESC  \n" +
                 "    LIMIT 1) AS `message`, \n" +
-                "    type, `desc`, groups.avatar AS groupAvatar, \n" +
+                "    type, `desc`, `groups`.avatar AS groupAvatar, \n" +
                 "    m.sent_at, m.sender_id, m.fullname, users.avatar AS userAvatar, \n" +
                 "    (SELECT COUNT(*) FROM messages WHERE group_id = group_members.group_id \n" +
                 "    AND messages.id NOT IN (SELECT message_id FROM deleted_messages WHERE user_id = ?)) AS countMessage,\n" +
-                "   owner" +
+                "   owner " +
                 "FROM group_members\n" +
-                "INNER JOIN `groups` ON groups.id = group_members.group_id\n" +
+                "INNER JOIN `groups` ON `groups`.id = group_members.group_id\n" +
                 "INNER JOIN users ON users.id = group_members.user_id\n" +
-                "INNER JOIN messages ON messages.group_id = groups.id\n" +
+                "INNER JOIN messages ON messages.group_id = `groups`.id\n" +
                 "LEFT OUTER JOIN \n" +
                 "    (SELECT messages.*, users.fullname \n" +
                 "    FROM messages, users \n" +

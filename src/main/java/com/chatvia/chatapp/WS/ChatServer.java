@@ -109,6 +109,84 @@ public class ChatServer extends WebSocketServer {
         System.out.println(res.getEvent());
         System.out.println(conn.getResourceDescriptor());
         switch (res.getEvent()) {
+            case "acceptCall": {
+                try {
+                    AcceptCallEvent acceptCallEvent = this.gson.fromJson(message, AcceptCallEvent.class);
+
+                    Group group = conversationService.getGroupById(acceptCallEvent.getGroupId());
+
+                    List<String> userIds = conversationService.getUserIdInGroup(acceptCallEvent.getGroupId());
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue())) {
+                            JsonObject cancelCallObject = new JsonObject();
+                            cancelCallObject.addProperty("event", "onAcceptCall");
+                            cancelCallObject.addProperty("groupId", acceptCallEvent.getGroupId());
+                            cancelCallObject.addProperty("roomId", acceptCallEvent.getRoomId());
+                            cancelCallObject.addProperty("groupType", group.getType());
+                            cancelCallObject.addProperty("type", acceptCallEvent.getType());
+                            client.getKey().send(cancelCallObject.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+            case "cancelCall": {
+                try {
+                    CancelCallEvent cancelCallEvent = this.gson.fromJson(message, CancelCallEvent.class);
+                    User sender = userService.findUserById(Integer.parseInt(cancelCallEvent.getSenderId()));
+                    Group group = conversationService.getGroupById(cancelCallEvent.getGroupId());
+
+                    List<String> userIds = conversationService.getUserIdInGroup(cancelCallEvent.getGroupId());
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue())) {
+                            JsonObject cancelCallObject = new JsonObject();
+                            cancelCallObject.addProperty("event", "onCancelCall");
+                            cancelCallObject.addProperty("groupId", cancelCallEvent.getGroupId());
+                            cancelCallObject.addProperty("senderId", cancelCallEvent.getSenderId());
+                            client.getKey().send(cancelCallObject.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+            case "sendCall": {
+                try {
+                    SendCallEvent sendCallEvent = this.gson.fromJson(message, SendCallEvent.class);
+                    User sender = userService.findUserById(Integer.parseInt(sendCallEvent.getSenderId()));
+                    Group group = conversationService.getGroupById(sendCallEvent.getGroupId());
+
+                    List<String> userIds = conversationService.getUserIdInGroup(sendCallEvent.getGroupId());
+
+                    for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
+                        if (userIds.contains(client.getValue()) && client.getKey() != conn) {
+                            JsonObject sendCallObject = new JsonObject();
+                            sendCallObject.addProperty("event", "onSendCall");
+                            sendCallObject.addProperty("groupId", sendCallEvent.getGroupId());
+                            sendCallObject.addProperty("type", sendCallEvent.getType());
+                            sendCallObject.addProperty("roomId", sendCallEvent.getRoomId());
+                            sendCallObject.addProperty("senderId", sendCallEvent.getRoomId());
+                            sendCallObject.addProperty("senderName", sender.getFullname());
+                            sendCallObject.addProperty("senderAvatar", sender.getAvatar());
+                            sendCallObject.addProperty("groupName", group.getName());
+                            sendCallObject.addProperty("groupType", group.getType());
+                            client.getKey().send(sendCallObject.toString());
+                        }
+                    }
+                } catch (SQLException throwables) {
+                    throwables.printStackTrace();
+                }
+
+                break;
+            }
+
             case Command.SEND_START_CHAT_PRIVATE: {
                 try {
                     JsonObject startChatPrivateJson = new JsonObject();
@@ -1048,13 +1126,13 @@ public class ChatServer extends WebSocketServer {
 
                     for (Map.Entry<WebSocket, String> client : clients.entrySet()) {
                         System.out.println(clients.values());
-                        if(userIds.contains(client.getValue())) {
+                        if (userIds.contains(client.getValue())) {
                             onlineIds.add(client.getValue());
                         }
                     }
 
                     for (int i = 0; i < users.size(); i++) {
-                        if(onlineIds.contains(Integer.toString(users.get(i).getId()))) {
+                        if (onlineIds.contains(Integer.toString(users.get(i).getId()))) {
                             users.get(i).setOnline(true);
                         } else {
                             users.get(i).setOnline(false);
