@@ -11,9 +11,9 @@ public class DB {
         if (connection == null) {
             try {
                 Class.forName("com.mysql.cj.jdbc.Driver");
-                String url = "jdbc:mysql://localhost:3306/chatvia";
-                String user = "root";
-                String password = "785571";
+                String url = "jdbc:mysql://mysql-126141-0.cloudclusters.net:19103/chatvia";
+                String user = "admin";
+                String password = "bL2tJvnP";
                 connection = DriverManager.getConnection(url, user, password);
             } catch (ClassNotFoundException | SQLException e) {
                 e.printStackTrace();

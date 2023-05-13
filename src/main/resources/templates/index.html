@@ -19,8 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/tippy.js@5/dist/backdrop.css" />
     <script src="js/toast.js"></script>
-    <link rel="stylesheet" type="text/css" th:href="@{css/styles-light.min.css}">
-    <link rel="stylesheet" type="text/css" th:href="@{css/styles-dark.min.css}" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" type="text/css" th:href="@{css/styles-dark.min.css}">
     <link rel="stylesheet" href="./css/main.css">
 </head>
 
@@ -94,6 +93,19 @@
                                     <ul class="list-inline text-end mb-0">
 
                                         <!-- Chat Info Button -->
+                                        <li class="list-inline-item d-none d-sm-inline-block">
+                                            <button class="call-voice-toggle btn btn-icon btn-base" title="Gọi thoại" type="button" data-bs-toggle="modal" data-bs-target="#call-voice-modal">
+                                                <i class="ri-phone-fill"></i>
+                                            </button>
+                                        </li>
+                                        <!-- Chat Info Button -->
+
+                                        <!-- Chat Info Button -->
+                                        <li class="list-inline-item d-none d-sm-inline-block">
+                                            <button class="call-video-toggle btn btn-icon btn-base" title="Gọi video" type="button" data-bs-toggle="modal" data-bs-target="#call-video-modal">
+                                                <i class="ri-vidicon-fill"></i>
+                                            </button>
+                                        </li>
                                         <li class="list-inline-item d-none d-sm-inline-block">
                                             <button class="chat-info-toggle btn btn-icon btn-base" title="Chat info" type="button">
                                                 <i class="ri-information-fill"></i>
@@ -339,7 +351,96 @@
         <!-- Main Content -->
     </div>
     <!-- Layout -->
+    <div class="modal fade" id="call-voice-modal" tabindex="-1" aria-labelledby="modal-account" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="call">
+                    <div class="avatar avatar-lg mb-5">
 
+                    </div>
+                    <h3 class="mb-0 name">John Doe</h3>
+                    <p class="sub-title">Đang gọi...</p>
+                    <button class="end-call">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="call-voice-incoming-modal" tabindex="-1" aria-labelledby="modal-account" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="call">
+                    <div class="avatar avatar-lg mb-5">
+
+                    </div>
+                    <h3 class="mb-0 name">John Doe</h3>
+                    <p class="sub-title">Cuộc gọi thoại...</p>
+                    <div class="d-flex">
+                        <button class="end-call mx-4" data-bs-dismiss="modal">
+                            <i class="ri-close-line"></i>
+                        </button>
+                        <button class="accept-call mx-4 bg-success" data-bs-dismiss="modal">
+                            <i class="ri-phone-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="call-video-incoming-modal" tabindex="-1" aria-labelledby="modal-account" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="call">
+                    <div class="avatar avatar-lg mb-5">
+                    </div>
+                    <h3 class="mb-0 name">John Doe</h3>
+                    <p class="sub-title">Cuộc gọi video...</p>
+                    <div class="d-flex">
+                        <button class="end-call mx-4" data-bs-dismiss="modal">
+                            <i class="ri-close-line"></i>
+                        </button>
+                        <button class="accept-call mx-4 bg-success" data-bs-dismiss="modal">
+                            <i class="ri-phone-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="call-video-modal" tabindex="-1" aria-labelledby="modal-account" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="call">
+                    <div class="avatar avatar-lg mb-5">
+
+                    </div>
+                    <h3 class="mb-0 name">John Doe</h3>
+                    <p class="sub-title">Đang gọi...</p>
+                    <button class="end-call">
+                        <i class="ri-close-line"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="call-container-modal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered w-100 h-100" style="max-width: calc(100% - 56px)">
+            <div class="modal-content w-100 h-100 overflow-hidden">
+                <div id="wrap-window-button">
+                    <button id="minisize-meet"><i class="ri-fullscreen-exit-fill"></i></button>
+                    <button id="maxisize-meet" style="display: none"><i class="ri-fullscreen-fill"></i></button>
+                </div>
+                <div id="meet" class=" w-100 h-100">
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Account Modal -->
     <div th:replace="/blocks/accountModal :: html_accountModal"></div>
     <!-- Account Modal -->
@@ -432,6 +533,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+    <script src='https://meet.jit.si/external_api.js'></script>
     <script src="js/filesize.js"></script>
     <script src="js/app.min.js"></script>
     <script src="js/main.js"></script>
